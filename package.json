@@ -1,0 +1,8 @@
+{
+  "name": "pz-build",
+  "private": true,
+  "description": "Сборка разделов пояснительной записки из markdown в .docx",
+  "dependencies": {
+    "docx": "^9.15.1"
+  }
+}

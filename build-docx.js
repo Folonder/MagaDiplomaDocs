@@ -14,6 +14,7 @@ const fs = require('fs');
 const path = require('path');
 const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, Tab,
+  ImageRun,
   AlignmentType, WidthType, TabStopType, PageOrientation, PageNumber,
   Footer, HeadingLevel, BorderStyle, TableLayoutType,
   Math: OfficeMath, MathRun, MathFraction, MathRadical, MathSubScript, MathSuperScript,
@@ -38,6 +39,16 @@ const FIRST_LINE = 709;   // абзацный отступ 1,25 см
 // keepNext на них не держит — заголовок отрывается от своего текста.
 const GAP = 480;
 const WIDE_TABLE = 'Таблица 1.5';   // не помещается на книжную страницу
+
+// Готовые рисунки: номер -> файл и ширина на странице в пикселях при 96 dpi
+// (16 см поля набора = 605 px). Высота считается по пропорциям исходника.
+const FIGURES = {
+  '1.1': { file: 'fig-1-1-phases.png',   width: 530, source: [640, 232] },
+  '1.2': { file: 'fig-1-2-existing.png', width: 530, source: [960, 490] },
+  '1.3': { file: 'fig-1-3-activity.png', width: 370, source: [560, 470] },
+  '1.4': { file: 'fig-1-4-layouts.png',  width: 530, source: [640, 200] },
+};
+const FIGURE_DIR = path.join(__dirname, '..', 'images', 'chapter1');
 
 const SOURCE = process.argv[2];
 const TARGET = process.argv[3];
@@ -204,6 +215,30 @@ const formula = (text, number, width) => new Paragraph({
   ],
 });
 
+/** Рисунок с подписью под ним по центру; при отсутствии файла — рамка. */
+function figure(block) {
+  const number = (block.caption.match(/Рисунок\s+([\d.]+)/) || [])[1];
+  const spec = FIGURES[number];
+  const file = spec && path.join(FIGURE_DIR, spec.file);
+  if (!spec || !fs.existsSync(file)) return figurePlaceholder(block);
+
+  const height = Math.round(spec.width * spec.source[1] / spec.source[0]);
+  return [
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      indent: { firstLine: 0 },
+      spacing: { line: LINE, before: 0, after: 0 },
+      keepNext: true,
+      children: [new ImageRun({
+        type: 'png',
+        data: fs.readFileSync(file),
+        transformation: { width: spec.width, height },
+      })],
+    }),
+    caption(block.caption, AlignmentType.CENTER),
+  ];
+}
+
 /** Место под ещё не нарисованный рисунок: рамка с описанием и подпись. */
 const figurePlaceholder = (block) => {
   const frame = new Paragraph({
@@ -281,7 +316,7 @@ function render(blocks, width) {
 
     if (block.kind === 'tableCaption') { out.push(empty(), caption(block.text, AlignmentType.LEFT)); return; }
     if (block.kind === 'table') { out.push(table(block.rows, width), empty()); return; }
-    if (block.kind === 'figure') { out.push(empty(), ...figurePlaceholder(block), empty()); return; }
+    if (block.kind === 'figure') { out.push(empty(), ...figure(block), empty()); return; }
     if (block.kind === 'formula') { out.push(empty(), formula(block.text, block.number, width), empty()); return; }
     if (block.kind === 'item' || block.kind === 'bullet') { out.push(body(block.text)); return; }
     out.push(body(block.text));
