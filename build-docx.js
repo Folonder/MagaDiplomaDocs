@@ -218,7 +218,9 @@ function render(blocks, width) {
     const previous = blocks[index - 1];
 
     if (block.kind.startsWith('h')) {
-      if (previous) { out.push(empty(), empty()); }          // 2 интервала перед заголовком
+      // Перед заголовком 2 интервала, но между заголовком и подзаголовком —
+      // ровно 1: его печатает предыдущий заголовок, добавлять свои нельзя
+      if (previous && !previous.kind.startsWith('h')) out.push(empty(), empty());
       const level = { h1: HeadingLevel.HEADING_1, h2: HeadingLevel.HEADING_2, h3: HeadingLevel.HEADING_3 }[block.kind];
       out.push(heading(block.text, level));
       out.push(empty());
