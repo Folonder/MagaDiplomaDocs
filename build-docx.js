@@ -15,7 +15,8 @@ const path = require('path');
 const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, Tab,
   AlignmentType, WidthType, TabStopType, PageOrientation, PageNumber,
-  Footer, HeadingLevel, BorderStyle,
+  Footer, HeadingLevel, BorderStyle, TableLayoutType,
+  Math: OfficeMath, MathRun, MathFraction, MathRadical, MathSubScript, MathSuperScript,
 } = require('docx');
 
 // ── Параметры страницы и текста (DXA) ────────────────────────────────────────
@@ -25,6 +26,10 @@ const TEXT_WIDTH = PAGE.width - MARGIN.left - MARGIN.right;            // 9355
 const TEXT_WIDTH_LAND = PAGE.height - MARGIN.left - MARGIN.right;      // 14287
 const FONT = 'Times New Roman';
 const SIZE = 28;          // полуразмеры = 14 пт
+// ГОСТ 7.32-2017, п. 6.6.7: в таблице допускается кегль меньше, чем в тексте.
+// Методичка кафедры о кегле таблиц молчит, а при 14 пт широкие таблицы
+// выходят за поле набора.
+const SIZE_TABLE = 24;    // 12 пт
 const LINE = 360;         // полуторный интервал
 const FIRST_LINE = 709;   // абзацный отступ 1,25 см
 const WIDE_TABLE = 'Таблица 1.5';   // не помещается на книжную страницу
@@ -115,7 +120,7 @@ const runs = (text, extra = {}) => {
   return out;
 };
 
-const empty = () => new Paragraph({ children: runs('') });
+const empty = (keepNext = false) => new Paragraph({ keepNext, children: runs('') });
 
 const body = (text, options = {}) => new Paragraph({
   alignment: options.alignment ?? AlignmentType.JUSTIFIED,
@@ -141,6 +146,44 @@ const caption = (text, alignment) => new Paragraph({
   children: runs(text),
 });
 
+/**
+ * Формулы набираются средствами Word (объект OMML), а не строкой текста:
+ * методичка требует редактор формул. Разметка каждой формулы задаётся здесь
+ * по её номеру, прочие выводятся одной строкой внутри того же объекта.
+ */
+function mathOf(text, number) {
+  if (number === '(1.2)') {
+    return [
+      new MathRun('UCT'),
+      new MathSubScript({ children: [new MathRun('')], subScript: [new MathRun('j')] }),
+      new MathRun(' = '),
+      new MathRun('X̄'),
+      new MathSubScript({ children: [new MathRun('')], subScript: [new MathRun('j')] }),
+      new MathRun(' + C'),
+      new MathRadical({
+        children: [new MathFraction({
+          numerator: [new MathRun('ln N')],
+          denominator: [new MathRun('n'), new MathSubScript({ children: [new MathRun('')], subScript: [new MathRun('j')] })],
+        })],
+      }),
+    ];
+  }
+  if (number === '(1.3)') {
+    return [
+      new MathRun('E(S) = '),
+      new MathFraction({
+        numerator: [new MathRun('1')],
+        denominator: [new MathRun('s'), new MathSubScript({ children: [new MathRun('')], subScript: [new MathRun('max')] }), new MathRun(' · 100')],
+      }),
+      new MathRun(' ∑ score(S, k'),
+      new MathSubScript({ children: [new MathRun('')], subScript: [new MathRun('i')] }),
+      new MathRun(') · w'),
+      new MathSubScript({ children: [new MathRun('')], subScript: [new MathRun('i')] }),
+    ];
+  }
+  return [new MathRun(text)];
+}
+
 const formula = (text, number, width) => new Paragraph({
   indent: { firstLine: 0 },
   spacing: { line: LINE, before: 0, after: 0 },
@@ -150,7 +193,7 @@ const formula = (text, number, width) => new Paragraph({
   ],
   children: [
     new TextRun({ children: [new Tab()], font: FONT, size: SIZE }),
-    ...runs(text),
+    new OfficeMath({ children: mathOf(text, number) }),
     new TextRun({ children: [new Tab()], font: FONT, size: SIZE }),
     ...runs(number),
   ],
@@ -192,6 +235,9 @@ const table = (rows, width) => {
   return new Table({
     columnWidths: widths,
     width: { size: width, type: WidthType.DXA },
+    // Без фиксированной раскладки Word подгоняет столбцы под содержимое и
+    // выносит таблицу за правое поле
+    layout: TableLayoutType.FIXED,
     // У широкой таблицы обычные поля ячеек съедают треть столбца и заголовки
     // вида k10 переносятся на вторую строку
     ...(columns > 8 ? { margins: { top: 0, bottom: 0, left: 28, right: 28 } } : {}),
@@ -203,7 +249,7 @@ const table = (rows, width) => {
           alignment: column === 0 && columns > 2 ? AlignmentType.LEFT : AlignmentType.CENTER,
           indent: { firstLine: 0 },
           spacing: { line: LINE, before: 0, after: 0 },
-          children: runs(cell),
+          children: runs(cell, { size: SIZE_TABLE }),
         })],
       })),
     })),
@@ -223,8 +269,10 @@ function render(blocks, width) {
       if (previous && !previous.kind.startsWith('h')) out.push(empty(), empty());
       const level = { h1: HeadingLevel.HEADING_1, h2: HeadingLevel.HEADING_2, h3: HeadingLevel.HEADING_3 }[block.kind];
       out.push(heading(block.text, level));
-      out.push(empty());
-      if (next && !next.kind.startsWith('h')) out.push(empty());   // 2 интервала до текста
+      // Пустые абзацы после заголовка тоже держатся за следующий абзац, иначе
+      // разрыв страницы встаёт между заголовком и его текстом
+      out.push(empty(true));
+      if (next && !next.kind.startsWith('h')) out.push(empty(true));   // 2 интервала до текста
       return;
     }
 
