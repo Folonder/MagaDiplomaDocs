@@ -174,15 +174,27 @@ const figurePlaceholder = (block) => {
 };
 
 const table = (rows, width) => {
+  // У широкой таблицы крайние столбцы держат текст, средние — по одному знаку,
+  // поэтому равное деление их бы переполнило, а крайние оставило бы пустыми.
   const columns = rows[0].length;
-  const first = columns > 6 ? Math.round(width * 0.17) : Math.round(width / columns);
-  const rest = Math.floor((width - first) / (columns - 1));
-  const widths = [first, ...Array(columns - 1).fill(rest)];
+  let widths;
+  if (columns > 8) {
+    const head = 2200;
+    const tail = 1300;
+    const middle = Math.floor((width - head - tail) / (columns - 2));
+    widths = [head, ...Array(columns - 2).fill(middle), tail];
+  } else {
+    const first = columns > 4 ? Math.round(width * 0.22) : Math.round(width / columns);
+    widths = [first, ...Array(columns - 1).fill(Math.floor((width - first) / (columns - 1)))];
+  }
   widths[columns - 1] += width - widths.reduce((a, b) => a + b, 0);
 
   return new Table({
     columnWidths: widths,
     width: { size: width, type: WidthType.DXA },
+    // У широкой таблицы обычные поля ячеек съедают треть столбца и заголовки
+    // вида k10 переносятся на вторую строку
+    ...(columns > 8 ? { margins: { top: 0, bottom: 0, left: 28, right: 28 } } : {}),
     rows: rows.map((cells, index) => new TableRow({
       tableHeader: index === 0,
       children: cells.map((cell, column) => new TableCell({
@@ -255,7 +267,7 @@ const footer = () => new Footer({
 
 const markdown = fs.readFileSync(SOURCE, 'utf8');
 const chapter = markdown.split('## Источники')[0];        // список источников собирается отдельно
-const parts = split(parse(chapter));
+const parts = [{ landscape: false, blocks: parse(chapter) }];   // всё книжной ориентацией
 
 const headingStyle = {
   run: { font: FONT, size: SIZE, bold: false, color: '000000' },
