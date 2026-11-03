@@ -32,6 +32,11 @@ const SIZE = 28;          // полуразмеры = 14 пт
 const SIZE_TABLE = 24;    // 12 пт
 const LINE = 360;         // полуторный интервал
 const FIRST_LINE = 709;   // абзацный отступ 1,25 см
+// Высота одного «интервала» — пустой строки основного стиля: 14 пт при
+// полуторном междустрочии. Вокруг заголовков интервалы задаются отступами
+// самого заголовка: пустые абзацы Word поглощает на границе страницы, и
+// keepNext на них не держит — заголовок отрывается от своего текста.
+const GAP = 480;
 const WIDE_TABLE = 'Таблица 1.5';   // не помещается на книжную страницу
 
 const SOURCE = process.argv[2];
@@ -129,11 +134,11 @@ const body = (text, options = {}) => new Paragraph({
   children: runs(text),
 });
 
-const heading = (text, level) => new Paragraph({
+const heading = (text, level, before, after) => new Paragraph({
   heading: level,
   alignment: AlignmentType.LEFT,
   indent: { firstLine: FIRST_LINE },
-  spacing: { line: LINE, before: 0, after: 0 },
+  spacing: { line: LINE, before, after },
   keepNext: true,
   children: runs(text),
 });
@@ -264,15 +269,13 @@ function render(blocks, width) {
     const previous = blocks[index - 1];
 
     if (block.kind.startsWith('h')) {
-      // Перед заголовком 2 интервала, но между заголовком и подзаголовком —
-      // ровно 1: его печатает предыдущий заголовок, добавлять свои нельзя
-      if (previous && !previous.kind.startsWith('h')) out.push(empty(), empty());
       const level = { h1: HeadingLevel.HEADING_1, h2: HeadingLevel.HEADING_2, h3: HeadingLevel.HEADING_3 }[block.kind];
-      out.push(heading(block.text, level));
-      // Пустые абзацы после заголовка тоже держатся за следующий абзац, иначе
-      // разрыв страницы встаёт между заголовком и его текстом
-      out.push(empty(true));
-      if (next && !next.kind.startsWith('h')) out.push(empty(true));   // 2 интервала до текста
+      // Перед заголовком 2 интервала, но между заголовком и подзаголовком —
+      // ровно 1: его отступ снизу печатает предыдущий заголовок
+      const before = !previous || previous.kind.startsWith('h') ? 0 : 2 * GAP;
+      // После заголовка 2 интервала до текста и 1 до подзаголовка
+      const after = next && next.kind.startsWith('h') ? GAP : 2 * GAP;
+      out.push(heading(block.text, level, before, after));
       return;
     }
 
