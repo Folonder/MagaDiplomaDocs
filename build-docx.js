@@ -58,12 +58,17 @@ function parse(markdown) {
   const lines = markdown.split('\n');
   const blocks = [];
   let i = 0;
+  // В списке литературы номер источника пишется с точкой, а не как «1)»:
+  // это нумерация записей, а не перечисление внутри текста
+  let bibliography = false;
 
   while (i < lines.length) {
     const line = lines[i];
     const text = line.trim();
 
     if (!text) { i += 1; continue; }
+
+    if (/^#{1,3} Список использованных источников/.test(text)) bibliography = true;
 
     if (text.startsWith('### ')) { blocks.push({ kind: 'h3', text: text.slice(4) }); i += 1; continue; }
     if (text.startsWith('## '))  { blocks.push({ kind: 'h2', text: text.slice(3) }); i += 1; continue; }
@@ -98,7 +103,7 @@ function parse(markdown) {
     }
 
     if (/^\d+\.\s/.test(text)) {
-      blocks.push({ kind: 'item', text: text.replace(/^(\d+)\.\s/, '$1) ') });
+      blocks.push({ kind: 'item', text: bibliography ? text : text.replace(/^(\d+)\.\s/, '$1) ') });
       i += 1;
       continue;
     }
