@@ -1,0 +1,118 @@
+% Оформление пояснительной записки по методичке кафедры ПОАС ВолгГТУ.
+% Компилировать XeLaTeX: нужен системный Times New Roman.
+\ProvidesPackage{gost}[2026/11/21 Оформление ПЗ ПОАС ВолгГТУ]
+
+\RequirePackage{fontspec}
+\RequirePackage{polyglossia}
+\RequirePackage{geometry}
+\RequirePackage{setspace}
+\RequirePackage{indentfirst}
+\RequirePackage{titlesec}
+\RequirePackage{fancyhdr}
+\RequirePackage{caption}
+\RequirePackage{graphicx}
+\RequirePackage{array}
+\RequirePackage{tabularx}
+\RequirePackage{longtable}
+\RequirePackage{amsmath}
+\RequirePackage{enumitem}
+\RequirePackage[hidelinks]{hyperref}
+
+% ── Страница и шрифт ─────────────────────────────────────────────────────────
+% Поля 3 / 1,5 / 2 / 2 см (п. 6 требований к форматированию)
+\geometry{a4paper, left=3cm, right=1.5cm, top=2cm, bottom=2cm}
+
+\setdefaultlanguage{russian}
+\setotherlanguage{english}
+\setmainfont{Times New Roman}
+\newfontfamily\cyrillicfont{Times New Roman}
+
+% Times New Roman 14 пт, полуторный интервал, абзацный отступ 1,25 см
+\renewcommand{\normalsize}{\fontsize{14pt}{21pt}\selectfont}
+\normalsize
+\linespread{1.5}
+\setlength{\parindent}{1.25cm}
+\sloppy                      % заголовки и текст без переносов за поле
+
+% Один «интервал» — пустая строка основного стиля
+\newlength{\gostgap}
+\setlength{\gostgap}{24pt}
+
+% ── Номер страницы внизу по центру ───────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\thepage}%
+  \renewcommand{\headrulewidth}{0pt}}
+
+% ── Заголовки ────────────────────────────────────────────────────────────────
+% С абзацного отступа, по левому краю, обычным начертанием, без точки,
+% номер арабскими цифрами без точки. Слова «Глава»/«Раздел» не пишутся.
+\titleformat{\section}[hang]{\normalfont\normalsize}{\thesection}{0.5em}{}
+\titleformat{\subsection}[hang]{\normalfont\normalsize}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}[hang]{\normalfont\normalsize}{\thesubsubsection}{0.5em}{}
+
+% Перед заголовком 2 интервала, после — 2 интервала до текста.
+% Между заголовком и подзаголовком должен остаться 1 интервал, поэтому
+% «до» у подзаголовка нулевое: интервал печатает предыдущий заголовок.
+\titlespacing*{\section}      {\parindent}{2\gostgap}{\gostgap}
+\titlespacing*{\subsection}   {\parindent}{\gostgap}{\gostgap}
+\titlespacing*{\subsubsection}{\parindent}{\gostgap}{\gostgap}
+
+% Разделы с новой страницы не начинаются (п. 10)
+\newcommand{\razdel}[1]{\section{#1}}
+
+% ── Подписи ──────────────────────────────────────────────────────────────────
+% Рисунок: подпись снизу по центру, «Рисунок N - Наименование»
+% Таблица: название сверху слева без отступа, «Таблица N - Наименование»
+\DeclareCaptionLabelSeparator{gost}{ - }
+\captionsetup{labelsep=gost, font={normalsize}, skip=\gostgap}
+\captionsetup[figure]{justification=centering, singlelinecheck=true, position=below}
+\captionsetup[table]{justification=raggedright, singlelinecheck=false,
+                     position=above, indention=0pt}
+\renewcommand{\figurename}{Рисунок}
+\renewcommand{\tablename}{Таблица}
+
+% Нумерация рисунков, таблиц и формул в пределах раздела
+\numberwithin{figure}{section}
+\numberwithin{table}{section}
+\numberwithin{equation}{section}
+
+% ── Перечисления ─────────────────────────────────────────────────────────────
+% Маркер — дефис, со строчной буквы, «;» в конце, «.» у последнего
+\setlist[itemize]{label=--, leftmargin=0pt, itemindent=\parindent,
+                  labelsep=0.5em, topsep=0pt, parsep=0pt, itemsep=0pt}
+\setlist[enumerate]{label=\arabic*), leftmargin=0pt, itemindent=\parindent,
+                    labelsep=0.5em, topsep=0pt, parsep=0pt, itemsep=0pt}
+
+% ── Таблицы ──────────────────────────────────────────────────────────────────
+% ГОСТ 7.32-2017, п. 6.6.7: в таблице допускается кегль меньше, чем в тексте.
+% Методичка кафедры о кегле таблиц молчит, а при 14 пт широкие таблицы не
+% помещаются по ширине полосы набора.
+\newcommand{\gosttablesize}{\fontsize{12pt}{14pt}\selectfont}
+\newenvironment{gosttable}[2]% #1 — номер-метка, #2 — наименование
+  {\par\vspace{\gostgap}\noindent
+   \begin{minipage}{\linewidth}
+   \captionof{table}{#2}\label{#1}\par\nopagebreak\gosttablesize}
+  {\end{minipage}\par\vspace{\gostgap}}
+
+% ── Рисунок ──────────────────────────────────────────────────────────────────
+\newcommand{\gostfigure}[3]{% #1 — файл, #2 — ширина, #3 — подпись
+  \par\vspace{\gostgap}
+  \begin{center}
+    \includegraphics[width=#2]{#1}\par\vspace{\gostgap}
+    \captionof{figure}{#3}
+  \end{center}
+  \par\vspace{\gostgap}}
+
+% ── Формулы ──────────────────────────────────────────────────────────────────
+% По центру, номер справа в круглых скобках, 1 интервал выше и ниже
+\AtBeginDocument{%
+  \setlength{\abovedisplayskip}{\gostgap}
+  \setlength{\belowdisplayskip}{\gostgap}
+  \setlength{\abovedisplayshortskip}{\gostgap}
+  \setlength{\belowdisplayshortskip}{\gostgap}}
+
+\endinput
