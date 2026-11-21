@@ -68,6 +68,9 @@ function parse(markdown) {
 
     if (!text) { i += 1; continue; }
 
+    // Горизонтальный разделитель markdown в записке не изображается
+    if (/^-{3,}$/.test(text)) { i += 1; continue; }
+
     if (/^#{1,3} Список использованных источников/.test(text)) bibliography = true;
 
     if (text.startsWith('### ')) { blocks.push({ kind: 'h3', text: text.slice(4) }); i += 1; continue; }
