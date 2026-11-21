@@ -17,7 +17,7 @@ const {
   ImageRun,
   AlignmentType, WidthType, TabStopType, PageOrientation, PageNumber,
   Footer, HeadingLevel, BorderStyle, TableLayoutType,
-  Math: OfficeMath, MathRun, MathFraction, MathRadical, MathSubScript, MathSuperScript,
+  Math: OfficeMath, MathRun, MathFraction, MathRadical, MathSubScript, MathSuperScript, MathSum,
 } = require('docx');
 
 // ── Параметры страницы и текста (DXA) ────────────────────────────────────────
@@ -172,19 +172,24 @@ const caption = (text, alignment) => new Paragraph({
  * методичка требует редактор формул. Разметка каждой формулы задаётся здесь
  * по её номеру, прочие выводятся одной строкой внутри того же объекта.
  */
+// Индекс строится ТОЛЬКО вместе со своим основанием: пустое основание Word
+// показывает квадратиком-заполнителем, а не пропуском.
+const sub = (base, index) => new MathSubScript({
+  children: [new MathRun(base)],
+  subScript: [new MathRun(index)],
+});
+
 function mathOf(text, number) {
   if (number === '(1.2)') {
     return [
-      new MathRun('UCT'),
-      new MathSubScript({ children: [new MathRun('')], subScript: [new MathRun('j')] }),
+      sub('UCT', 'j'),
       new MathRun(' = '),
-      new MathRun('X̄'),
-      new MathSubScript({ children: [new MathRun('')], subScript: [new MathRun('j')] }),
+      sub('X̄', 'j'),
       new MathRun(' + C'),
       new MathRadical({
         children: [new MathFraction({
           numerator: [new MathRun('ln N')],
-          denominator: [new MathRun('n'), new MathSubScript({ children: [new MathRun('')], subScript: [new MathRun('j')] })],
+          denominator: [sub('n', 'j')],
         })],
       }),
     ];
@@ -194,12 +199,22 @@ function mathOf(text, number) {
       new MathRun('E(S) = '),
       new MathFraction({
         numerator: [new MathRun('1')],
-        denominator: [new MathRun('s'), new MathSubScript({ children: [new MathRun('')], subScript: [new MathRun('max')] }), new MathRun(' · 100')],
+        denominator: [sub('s', 'max'), new MathRun(' · 100')],
       }),
-      new MathRun(' ∑ score(S, k'),
-      new MathSubScript({ children: [new MathRun('')], subScript: [new MathRun('i')] }),
-      new MathRun(') · w'),
-      new MathSubScript({ children: [new MathRun('')], subScript: [new MathRun('i')] }),
+      new MathSum({
+        children: [
+          new MathRun('score(S, '), sub('k', 'i'), new MathRun(') · '), sub('w', 'i'),
+        ],
+        subScript: [new MathRun('i = 1')],
+        superScript: [new MathRun('12')],
+      }),
+    ];
+  }
+  if (number === '(1.1)') {
+    return [
+      new MathRun('G = ⟨R, S, '), sub('s', '0'),
+      new MathRun(', A, noop, terminal(·), '), sub('legal', 'i'),
+      new MathRun('(·), next(·), payoff(·)⟩'),
     ];
   }
   return [new MathRun(text)];
