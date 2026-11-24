@@ -98,19 +98,31 @@ const formula = (number) => new Paragraph({
 });
 
 // ── Абзацы шапки ─────────────────────────────────────────────────────────────
+/**
+ * Номер автора записывается в исходнике как «^1» и печатается надстрочным
+ * индексом — и в строке авторов, и при их адресах.
+ */
+function runs(text, opts) {
+  return text.split(/(\^\d)/).filter(Boolean).map((piece) => new TextRun({
+    text: piece.startsWith('^') ? piece.slice(1) : piece,
+    superScript: piece.startsWith('^'),
+    font: FONT, size: opts.size || SIZE,
+    bold: !!opts.bold, italics: !!opts.italics,
+  }));
+}
+
 const line = (text, opts = {}) => new Paragraph({
   alignment: opts.alignment || AlignmentType.CENTER,
   spacing: { line: 240, before: 0, after: 0 },
   indent: { firstLine: 0 },
-  children: [new TextRun({
-    text, font: FONT, size: opts.size || SIZE,
-    bold: !!opts.bold, italics: !!opts.italics,
-  })],
+  children: runs(text, opts),
 });
 
+// Пустая строка основного кегля: у абзаца без текста Word берёт кегль по
+// умолчанию, поэтому в нём стоит пробел.
 const blank = () => new Paragraph({
   spacing: { line: 240, before: 0, after: 0 },
-  children: [new TextRun({ text: '', font: FONT, size: SIZE })],
+  children: [new TextRun({ text: ' ', font: FONT, size: SIZE })],
 });
 
 const body = (text) => new Paragraph({
@@ -129,14 +141,15 @@ const children = [
   line(meta['НАЗВАНИЕ']),
   blank(),
   line(meta['АВТОРЫ'], { bold: true }),
-  line(meta['ОРГАНИЗАЦИЯ'], { italics: true }),
-  line(`E-mail: ${meta['EMAIL']}`, { italics: true }),
+  // Организация и адреса — одной строкой, как в принятых работах ВолгГТУ.
+  line(`${meta['ОРГАНИЗАЦИЯ']}, Email: ${meta['EMAIL']}`, { italics: true }),
   blank(),
 ];
 
 for (const block of blocks) {
   if (block.kind === 'formula') children.push(formula(block.number));
-  else if (block.kind === 'heading') children.push(blank(), line(block.text, { bold: true }));
+  // «Список литературы» — по центру обычным начертанием, с пустой строкой вокруг.
+  else if (block.kind === 'heading') children.push(blank(), line(block.text), blank());
   else if (block.kind === 'reference') {
     children.push(new Paragraph({
       alignment: AlignmentType.JUSTIFIED,
