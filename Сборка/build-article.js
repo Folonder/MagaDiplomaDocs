@@ -6,13 +6,12 @@
  * Требования организаторов: лист А5, поля 2,0 / 1,8 / 1,8 / 1,9 см,
  * Times New Roman 11, одинарный интервал, абзацный отступ 0,5 см,
  * по ширине, с переносами, без колонтитулов и нумерации страниц.
- * Номер секции — в правом верхнем углу. Формулы — объекты Word (OMML).
+ * Номер секции — в правом верхнем углу.
  */
 const fs = require('fs');
 const {
-  Document, Packer, Paragraph, TextRun, Tab,
+  Document, Packer, Paragraph, TextRun, SymbolRun, Tab,
   AlignmentType, TabStopType, convertMillimetersToTwip,
-  Math: OfficeMath, MathRun, MathSubScript,
 } = require('docx');
 
 // ── Страница и текст (DXA: 1 см = 567) ───────────────────────────────────────
@@ -59,27 +58,57 @@ function parse(markdown) {
   return { meta, blocks };
 }
 
-// ── Формулы ──────────────────────────────────────────────────────────────────
-// Индекс строится только вместе со своим основанием: пустое основание Word
-// показывает квадратиком-заполнителем, а не пропуском.
-const sub = (base, index) => new MathSubScript({
-  children: [new MathRun(base)],
-  subScript: [new MathRun(index)],
+// ── Формулы ────────────────────────────────────────────────────────────────
+// Формулы набираются обычным текстом, а не объектом Word (OMML):
+// объект рисуется математическим шрифтом Cambria Math, и там, где его нет
+// (старые версии Word), латиница и греческие буквы показываются пустыми
+// квадратами. Для обычного текста Word подбирает шрифт сам, поэтому такая
+// запись читается в любой версии.
+
+// Знаков теории множеств в Times New Roman нет вовсе: Word подбирает под них другой
+// шрифт, и в старых версиях подстановка даёт пустой квадрат. Такие знаки берутся
+// из шрифта Symbol — он входит в любую Windows, и именно так их записывал ещё Word 97.
+const SYMBOL_FONT = { '⊆': 'F0CD', '∅': 'F0C6' };
+
+// Запись формулы: «_{…}» — подстрочный индекс.
+const FORMULAS = {
+  '(1)': 'x(c) ⊆ x(p),    Σ w(c) + w_{рез}(p) = w(p)',
+  '(2)': 'x(v) ∩ D ≠ ∅   и   w(v) · ρ ≥ s_{min}',
+};
+
+// Переменные печатаются курсивом, знаки действий и словесные индексы — прямым.
+const VARIABLE = /[A-Za-zρ]/;
+
+const mathRun = (text, opts) => new TextRun({
+  text, font: FONT, size: SIZE, italics: !!opts.italics, subScript: !!opts.subScript,
 });
 
-function mathOf(number) {
-  if (number === '(1)') {
-    return [
-      new MathRun('x(c) ⊆ x(p),    '),
-      new MathRun('Σ w(c) + '), sub('w', 'рез'), new MathRun('(p) = w(p)'),
-    ];
+function formulaRuns(source) {
+  const parts = [];
+  let plain = '';
+  const flushPlain = () => {
+    if (plain) parts.push(mathRun(plain, {}));
+    plain = '';
+  };
+
+  for (let at = 0; at < source.length; at += 1) {
+    if (source.startsWith('_{', at)) {
+      const close = source.indexOf('}', at);
+      flushPlain();
+      parts.push(mathRun(source.slice(at + 2, close), { subScript: true }));
+      at = close;
+    } else if (SYMBOL_FONT[source[at]]) {
+      flushPlain();
+      parts.push(new SymbolRun({ char: SYMBOL_FONT[source[at]], symbolfont: 'Symbol', size: SIZE }));
+    } else if (VARIABLE.test(source[at])) {
+      flushPlain();
+      parts.push(mathRun(source[at], { italics: true }));
+    } else {
+      plain += source[at];
+    }
   }
-  if (number === '(2)') {
-    return [
-      new MathRun('x(v) ∩ D ≠ ∅   и   w(v) · ρ ≥ '), sub('s', 'min'),
-    ];
-  }
-  return [new MathRun(number)];
+  flushPlain();
+  return parts;
 }
 
 // Формула по центру, номер прижат к правому полю.
@@ -92,8 +121,8 @@ const formula = (number) => new Paragraph({
   ],
   children: [
     new TextRun({ children: [new Tab()], font: FONT, size: SIZE }),
-    new OfficeMath({ children: mathOf(number) }),
-    new TextRun({ children: [new Tab()], text: number, font: FONT, size: SIZE }),
+    ...formulaRuns(FORMULAS[number] || number),
+    new TextRun({ children: [new Tab(), number], font: FONT, size: SIZE }),
   ],
 });
 
