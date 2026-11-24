@@ -11,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const { chromium } = require('../../mcts-viz/node_modules/playwright-core');
 
-const OUT = path.join(__dirname, '..', '..', 'images', 'chapter1');
+const OUT = path.join(__dirname, '..', 'images', 'chapter1');
 const SCALE = 2;                      // плотность растра под печать
 const FONT = 'Times New Roman, serif';
 
@@ -219,7 +219,7 @@ async function render(page, svg, file, width, height) {
   await render(page, FIG_LAYOUTS, 'fig-1-4-layouts.png', 640, 200);
 
   // Снимок существующего модуля — в оттенки серого: методичка запрещает цвет
-  const source = path.resolve(__dirname, '..', '..', 'images', 'chapter1', 'src-module.png');
+  const source = path.resolve(__dirname, '..', 'images', 'chapter1', 'src-module.png');
   if (fs.existsSync(source)) {
     const data = fs.readFileSync(source).toString('base64');
     await page.setViewportSize({ width: 960, height: 490 });

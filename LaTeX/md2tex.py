@@ -20,10 +20,10 @@ FORMULAS = {
 
 # Рисунки: номер -> файл и ширина на полосе набора
 FIGURES = {
-    '1.1': ('../../images/chapter1/fig-1-1-phases.png',   '14cm'),
-    '1.2': ('../../images/chapter1/fig-1-2-existing.png', '14cm'),
-    '1.3': ('../../images/chapter1/fig-1-3-activity.png', '9.8cm'),
-    '1.4': ('../../images/chapter1/fig-1-4-layouts.png',  '14cm'),
+    '1.1': ('../images/chapter1/fig-1-1-phases.png',   '14cm'),
+    '1.2': ('../images/chapter1/fig-1-2-existing.png', '14cm'),
+    '1.3': ('../images/chapter1/fig-1-3-activity.png', '9.8cm'),
+    '1.4': ('../images/chapter1/fig-1-4-layouts.png',  '14cm'),
 }
 
 SPECIALS = [('\\', r'\textbackslash{}'), ('&', r'\&'), ('%', r'\%'), ('$', r'\$'),

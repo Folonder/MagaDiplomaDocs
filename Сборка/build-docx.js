@@ -48,7 +48,7 @@ const FIGURES = {
   '1.3': { file: 'fig-1-3-activity.png', width: 370, source: [560, 470] },
   '1.4': { file: 'fig-1-4-layouts.png',  width: 530, source: [640, 200] },
 };
-const FIGURE_DIR = path.join(__dirname, '..', '..', 'images', 'chapter1');
+const FIGURE_DIR = path.join(__dirname, '..', 'images', 'chapter1');
 
 const SOURCE = process.argv[2];
 const TARGET = process.argv[3];

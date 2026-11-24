@@ -1,0 +1,17 @@
+# Промежуточные файлы сборки LaTeX
+LaTeX/*.aux
+LaTeX/*.log
+LaTeX/*.out
+LaTeX/*.toc
+LaTeX/*.synctex.gz
+LaTeX/*.fls
+LaTeX/*.fdb_latexmk
+LaTeX/*.xdv
+
+# Зависимости сборщика .docx
+Сборка/node_modules/
+
+# Временные файлы Word и системы
+~$*
+.DS_Store
+Thumbs.db
