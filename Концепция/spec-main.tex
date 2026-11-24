@@ -1,6 +1,10 @@
 % !TeX program = xelatex
 % Формальная спецификация задач и алгоритмов. Компилировать XeLaTeX.
 \documentclass[14pt,a4paper]{extarticle}
+
+% gost.sty общий для записки и концепции и лежит в папке «Оформление»:
+% подсказываем LaTeX, где его искать.
+\makeatletter\def\input@path{{../Оформление/}}\makeatother
 \usepackage{gost}
 
 \begin{document}
